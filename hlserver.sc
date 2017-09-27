@@ -5,36 +5,37 @@ println("Starting HLServer")
 
 //Setup sending UDP Socket
 val socket = new DatagramSocket()
-val strips = List(
-  (InetAddress.getByName("10.0.0.204"), 135)
-)
 
 def write(address: InetAddress, data: Array[Byte]) {
   val packet = new DatagramPacket(data, data.length, address, 1234)
   socket.send(packet)
 }
 
+case class Strip(address: InetAddress, length: Int, bytes: Int)
+
+val strips = List(
+  Strip(InetAddress.getByName("10.0.0.204"), 45, 3)
+)
+
 //The main loop
 while (true) {
-  var map = Map[Tuple2[InetAddress, Int], Array[Byte]]()
+  var map = Map[Strip, Array[Byte]]()
   for (strip <- strips) {
-    val data = (0 until strip._2 / 3).flatMap(effect(_)).toArray
+    val data = (0 until strip.length).flatMap(effect(_, strip, time)).toArray
     map += strip -> data
   }
 
   for ((k, v) <- map) {
-    write(k._1, v)
+    write(k.address, v)
   }
 
-  times += 1
-  
   Thread.sleep(15)
 }
 
 //An example effect function creating a rainbow
-def effect(index: Int): Array[Byte] = {
-  val pos = (index.toFloat / 45 + times.toFloat / 200f) % 1f
-  hsv(pos, 1, 0.02f)
+def effect(index: Int, strip: Strip, time: Time): Array[Byte] = {
+  val pos = (index.toFloat / 45 + time.toFloat / 200f) % 1f
+  return hsv(pos, 1, 0.02f)
 }
 
 //An example hsv to gbr array function
